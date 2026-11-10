@@ -1,0 +1,8 @@
+{
+  "name": "CIVICEYE – Smart Village Complaint Management System",
+  "description": "Smart complaint reporting and administrative resolution system for village municipal services, electrical works, and civic infrastructure.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

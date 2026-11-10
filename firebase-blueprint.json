@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered citizen or administrative officer",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "email": { "type": "string", "maxLength": 150 },
+        "ward": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["citizen", "admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "phone", "role"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Civic grievance or service request reported in the village",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "citizenId": { "type": "string", "maxLength": 128 },
+        "citizenName": { "type": "string", "maxLength": 100 },
+        "citizenPhone": { "type": "string", "maxLength": 20 },
+        "category": { "type": "string", "maxLength": 60 },
+        "customCategoryTitle": { "type": "string", "maxLength": 120 },
+        "subcategory": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "imageUrls": { "type": "array" },
+        "afterImageUrl": { "type": "string", "maxLength": 500 },
+        "address": { "type": "string", "maxLength": 300 },
+        "ward": { "type": "string", "maxLength": 100 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "status": { "type": "string", "enum": ["submitted", "verified", "in_progress", "resolved", "rejected", "duplicate"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+        "assignedDepartment": { "type": "string", "maxLength": 100 },
+        "assignedWorkerName": { "type": "string", "maxLength": 100 },
+        "statusReason": { "type": "string", "maxLength": 500 },
+        "resolutionNotes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "citizenId", "category", "description", "address", "status", "priority", "createdAt"]
+    },
+    "StatusHistory": {
+      "title": "StatusHistory",
+      "description": "Audit record of a complaint status change",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "complaintId": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 50 },
+        "previousStatus": { "type": "string", "maxLength": 50 },
+        "actorName": { "type": "string", "maxLength": 100 },
+        "actorRole": { "type": "string", "maxLength": 50 },
+        "note": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "complaintId", "status", "timestamp"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Conversation comment between citizen and municipal team",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "complaintId": { "type": "string", "maxLength": 64 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorRole": { "type": "string", "maxLength": 50 },
+        "message": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "complaintId", "authorId", "authorName", "message", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User in-app notifications for status updates and alerts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "complaintId": { "type": "string", "maxLength": 64 },
+        "read": { "type": "boolean" },
+        "type": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message", "read", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Village-wide public notices published by administration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "maxLength": 60 },
+        "severity": { "type": "string", "enum": ["info", "warning", "urgent"] },
+        "publishDate": { "type": "string" },
+        "expiryDate": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "severity", "publishDate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Profile information for registered citizens and admins"
+    },
+    "/complaints/{complaintId}": {
+      "schema": "Complaint",
+      "description": "Civic complaints and problem reports"
+    },
+    "/complaints/{complaintId}/history/{historyId}": {
+      "schema": "StatusHistory",
+      "description": "Status lifecycle audit trail for each complaint"
+    },
+    "/complaints/{complaintId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Citizen and municipal comments thread"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "In-app notifications for users"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Village-wide broadcast notices"
+    }
+  }
+}

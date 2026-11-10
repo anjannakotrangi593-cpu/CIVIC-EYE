@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User profile rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) &&
+        incoming().keys().hasAll(['uid', 'name', 'phone', 'role']) &&
+        incoming().role == 'citizen'; // Cannot self-grant admin
+      allow update: if isOwner(userId) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'ward', 'email']) &&
+        incoming().role == existing().role;
+    }
+
+    // Complaints rules
+    match /complaints/{complaintId} {
+      // Any signed-in user or admin can read complaints (for nearby issues / public tracking)
+      // Citizen personal details are restricted on the public view
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Citizens can create complaints for themselves
+      allow create: if isSignedIn() &&
+        incoming().citizenId == request.auth.uid &&
+        incoming().status == 'submitted' &&
+        incoming().keys().hasAll(['id', 'citizenId', 'category', 'description', 'address', 'status', 'priority', 'createdAt']);
+
+      // Only admins can update status, assign workers, resolve or reject
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().citizenId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['description', 'imageUrls']) &&
+        existing().status == 'submitted' // Can only edit details if still in submitted state
+      );
+
+      allow delete: if isAdmin();
+
+      // Complaint status history subcollection
+      match /history/{historyId} {
+        allow read: if isSignedIn();
+        allow create: if isAdmin() || (
+          isSignedIn() &&
+          incoming().actorRole == 'citizen' &&
+          incoming().status == 'submitted'
+        );
+        allow update, delete: if false;
+      }
+
+      // Complaint comments subcollection
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() &&
+          incoming().authorId == request.auth.uid &&
+          incoming().keys().hasAll(['id', 'complaintId', 'authorId', 'authorName', 'message', 'timestamp']);
+        allow update, delete: if false;
+      }
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow create: if isAdmin() || isSignedIn();
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow read: if true; // Public announcements for all villagers
+      allow write: if isAdmin();
+    }
+
+    // Admins registry (authorized admin list)
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Provisioned exclusively via trusted backend
+    }
+  }
+}
