@@ -3,21 +3,23 @@ import { ArrowLeft, UserCheck, AlertTriangle, Check, Shield } from 'lucide-react
 import { Complaint, ComplaintPriority, ComplaintStatus, AssignedWorker } from '../../types';
 import { storage } from '../../services/storage';
 import { useAuth } from '../../context/AuthContext';
+import { INITIAL_COMPLAINTS } from '../../data/seedData';
 
 interface Props {
-  complaint: Complaint;
+  complaint?: Complaint | null;
   workers: AssignedWorker[];
   onBack: () => void;
   onUpdated: () => void;
 }
 
 export const Screen18_AssignWorkerModal: React.FC<Props> = ({
-  complaint,
+  complaint: propComplaint,
   workers,
   onBack,
   onUpdated
 }) => {
   const { user } = useAuth();
+  const complaint = propComplaint || INITIAL_COMPLAINTS[0];
   const [selectedWorker, setSelectedWorker] = useState<string>(
     complaint.assignedWorkerName || (workers[0]?.name ?? '')
   );
@@ -51,6 +53,7 @@ export const Screen18_AssignWorkerModal: React.FC<Props> = ({
         {
           note: notes.trim() || undefined,
           reason: isMandatoryReason ? reason.trim() : undefined,
+          assignedWorkerId: assignedWorkerObj?.id,
           assignedWorkerName: selectedWorker || undefined,
           assignedDepartment: assignedWorkerObj?.department || complaint.assignedDepartment,
           priority,

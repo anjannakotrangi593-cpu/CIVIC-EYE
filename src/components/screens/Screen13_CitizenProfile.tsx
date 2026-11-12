@@ -12,7 +12,8 @@ import {
   PhoneCall,
   ShieldCheck,
   User,
-  Check
+  Check,
+  Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Complaint } from '../../types';
@@ -23,6 +24,8 @@ interface Props {
   onOpenEmergency: () => void;
   onOpenConfig: () => void;
   onSwitchToAdmin: () => void;
+  onSwitchToWorker?: () => void;
+  onLogout?: () => void;
 }
 
 export const Screen13_CitizenProfile: React.FC<Props> = ({
@@ -30,7 +33,9 @@ export const Screen13_CitizenProfile: React.FC<Props> = ({
   onBack,
   onOpenEmergency,
   onOpenConfig,
-  onSwitchToAdmin
+  onSwitchToAdmin,
+  onSwitchToWorker,
+  onLogout
 }) => {
   const { user, logout, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -209,6 +214,24 @@ export const Screen13_CitizenProfile: React.FC<Props> = ({
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600" />
           </button>
 
+          {onSwitchToWorker && (
+            <button
+              onClick={onSwitchToWorker}
+              className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Wrench className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800">Field Worker Portal</span>
+                  <p className="text-[10px] text-slate-400">Lineman &amp; maintenance staff tasks</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600" />
+            </button>
+          )}
+
           <button
             onClick={() =>
               alert(
@@ -227,7 +250,10 @@ export const Screen13_CitizenProfile: React.FC<Props> = ({
           </button>
 
           <button
-            onClick={logout}
+            onClick={() => {
+              logout();
+              if (onLogout) onLogout();
+            }}
             className="w-full p-4 flex items-center justify-between text-left hover:bg-rose-50/60 transition-colors group"
           >
             <div className="flex items-center gap-3">

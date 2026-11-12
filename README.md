@@ -30,6 +30,8 @@ The user interface reproduces the 20-screen reference layout:
 | **18** | **Assign Worker & Update Status** | Lineman/worker dropdown, priority (Low/Medium/High/Urgent), mandatory rejection reason |
 | **19** | **Mark as Completed** | Confirmation dialog, resolution summary note, optional work completion after-photo |
 | **20** | **Completed + Comments Feed**| Citizen & Municipal team discussion thread with interactive comment posting |
+| **22** | **Worker Login** | Phone validation against roster, 4-digit security PIN, role separation |
+| **23** | **Worker Dashboard** | Field task triage, start work action, direct citizen contact, upload proof & resolve |
 
 ---
 
@@ -83,3 +85,4 @@ VITE_GOOGLE_MAPS_API_KEY="AIzaSy..."
 - **Default Credentials for Quick Testing**:
   - **Citizen Login**: Mobile `9876543210`, Password `pass123` (or OTP `123456`)
   - **Admin Login**: Password `admin123`
+  - **Worker Login**: Phone `9412355667` (Ramesh - Sanitation), `9822233445` (Mahesh - Lineman), `9412377889` (Suresh - Roads), PIN `1234`

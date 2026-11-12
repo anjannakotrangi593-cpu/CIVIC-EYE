@@ -16,25 +16,28 @@ import { storage } from '../../services/storage';
 import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { CATEGORIES } from '../../data/categories';
+import { INITIAL_COMPLAINTS } from '../../data/seedData';
 
 interface Props {
-  complaint: Complaint;
+  complaint?: Complaint | null;
   onBack: () => void;
   onRefreshComplaint: () => void;
 }
 
 export const Screen10_ComplaintDetails: React.FC<Props> = ({
-  complaint,
+  complaint: propComplaint,
   onBack,
   onRefreshComplaint
 }) => {
   const { user } = useAuth();
+  const complaint = propComplaint || INITIAL_COMPLAINTS[0];
+
   const [history, setHistory] = useState<StatusHistoryItem[]>([]);
   const [comments, setComments] = useState<ComplaintComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
-  const catInfo = CATEGORIES[complaint.category];
+  const catInfo = CATEGORIES[complaint.category] || CATEGORIES.garbage;
 
   useEffect(() => {
     loadData();
@@ -237,6 +240,54 @@ export const Screen10_ComplaintDetails: React.FC<Props> = ({
               </div>
             )}
           </div>
+
+          {/* Verified Field Progress Updates (Only Admin-Verified updates are shown to Citizens) */}
+          {complaint.progressUpdates &&
+            complaint.progressUpdates.filter((p) => p.isVerifiedByAdmin).length > 0 && (
+              <div className="bg-white rounded-2xl p-4 border border-emerald-200 bg-emerald-50/20 shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Verified Field Progress</span>
+                  </h4>
+                  <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                    Official Update
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {complaint.progressUpdates
+                    .filter((p) => p.isVerifiedByAdmin)
+                    .map((prog) => (
+                      <div
+                        key={prog.id}
+                        className="bg-white p-3 rounded-xl border border-emerald-100 text-xs space-y-1.5 shadow-2xs"
+                      >
+                        <div className="flex justify-between items-center text-[10px] text-slate-400">
+                          <span className="font-semibold text-slate-700">By {prog.workerName}</span>
+                          <span>{new Date(prog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-slate-700">{prog.description}</p>
+                        {prog.images && prog.images.length > 0 && (
+                          <div className="flex gap-1.5 overflow-x-auto pt-1">
+                            {prog.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt="Field progress"
+                                className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <span className="text-[9px] font-bold text-emerald-700 block pt-0.5">
+                          ✓ Verified by {prog.verifiedBy || 'Administration'}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
           {/* Status Lifecycle Tracker */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">

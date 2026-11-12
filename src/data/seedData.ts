@@ -6,7 +6,10 @@ import {
   VillageAnnouncement,
   AssignedWorker,
   EmergencyContact,
-  UserProfile
+  UserProfile,
+  RegistrationRequest,
+  DepartmentInfo,
+  AuditLog
 } from '../types';
 
 export const INITIAL_CITIZEN: UserProfile = {
@@ -16,6 +19,7 @@ export const INITIAL_CITIZEN: UserProfile = {
   email: 'ravi.kumar@village.gov.in',
   ward: 'Ward 4 (MG Road Sector)',
   role: 'citizen',
+  approvalStatus: 'approved',
   avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
   createdAt: '2025-04-10T09:00:00Z'
 };
@@ -27,8 +31,26 @@ export const INITIAL_ADMIN: UserProfile = {
   email: 'admin@civiceye.gov',
   ward: 'Gram Panchayat Central Office',
   role: 'admin',
+  approvalStatus: 'approved',
+  department: 'Rural Development & Public Works',
+  profession: 'Panchayat Executive Officer',
+  departmentSubcategory: 'Municipal Governance & Works',
   avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
   createdAt: '2025-01-01T00:00:00Z'
+};
+
+export const INITIAL_MAIN_ADMIN: UserProfile = {
+  id: 'usr_main_admin_001',
+  name: 'District Chief Officer Rajeshwar Rao',
+  phone: '+91 99999 00001',
+  email: 'mainadmin@civiceye.gov',
+  ward: 'District Collectorate / Zilla Parishad',
+  role: 'main_admin',
+  approvalStatus: 'approved',
+  profession: 'Chief Municipal Commissioner',
+  department: 'Apex Village Administration',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+  createdAt: '2024-12-01T00:00:00Z'
 };
 
 export const INITIAL_WORKERS: AssignedWorker[] = [
@@ -36,33 +58,154 @@ export const INITIAL_WORKERS: AssignedWorker[] = [
     id: 'wrk_01',
     name: 'Ramesh Kumar (Worker)',
     phone: '+91 94123 55667',
-    department: 'Sanitation & Solid Waste',
+    department: 'Sanitation',
     roleTitle: 'Sanitation Field Supervisor',
-    activeTasks: 3
+    activeTasks: 3,
+    approvalStatus: 'approved'
   },
   {
     id: 'wrk_02',
     name: 'Suresh Patel (Worker)',
     phone: '+91 94123 77889',
-    department: 'Public Works & Roads',
+    department: 'Roads',
     roleTitle: 'Road Maintenance Lead',
-    activeTasks: 2
+    activeTasks: 2,
+    approvalStatus: 'approved'
   },
   {
     id: 'wrk_03',
     name: 'Mahesh Sharma (Lineman)',
     phone: '+91 98222 33445',
-    department: 'State Electricity Board',
+    department: 'Electricity',
     roleTitle: 'Senior Village Lineman',
-    activeTasks: 1
+    activeTasks: 1,
+    approvalStatus: 'approved'
   },
   {
     id: 'wrk_04',
     name: 'Priya Sundaram (Engineer)',
     phone: '+91 98450 11223',
-    department: 'Rural Water Supply',
+    department: 'Water Supply',
     roleTitle: 'Water Supply Inspector',
-    activeTasks: 2
+    activeTasks: 2,
+    approvalStatus: 'approved'
+  }
+];
+
+export const INITIAL_REGISTRATION_REQUESTS: RegistrationRequest[] = [
+  {
+    id: 'req_001',
+    userId: 'usr_pending_admin_01',
+    name: 'Inspector Meena Devi',
+    phone: '+91 98333 44556',
+    email: 'meena.devi@panchayat.gov',
+    role: 'admin',
+    department: 'Sanitation',
+    profession: 'Sanitary Inspector',
+    departmentSubcategory: 'Public Health & Drainage Oversight',
+    status: 'pending',
+    verificationStatus: 'verified',
+    createdAt: '2025-04-22T08:30:00Z'
+  },
+  {
+    id: 'req_002',
+    userId: 'usr_pending_wrk_01',
+    name: 'Vikas Yadav',
+    phone: '+91 97222 33441',
+    role: 'worker',
+    department: 'Electricity',
+    address: 'Feeder Substation Ward 5, Rampur',
+    status: 'pending',
+    verificationStatus: 'verified',
+    createdAt: '2025-04-22T09:15:00Z'
+  }
+];
+
+export const INITIAL_DEPARTMENTS: DepartmentInfo[] = [
+  {
+    id: 'dept_sanitation',
+    name: 'Sanitation',
+    code: 'SAN',
+    headName: 'Anil Verma',
+    contactPhone: '+91 98111 22334',
+    activeWorkersCount: 4,
+    openComplaintsCount: 2
+  },
+  {
+    id: 'dept_roads',
+    name: 'Roads',
+    code: 'RDS',
+    headName: 'Suresh Patel',
+    contactPhone: '+91 94123 77889',
+    activeWorkersCount: 3,
+    openComplaintsCount: 1
+  },
+  {
+    id: 'dept_water',
+    name: 'Water Supply',
+    code: 'WTR',
+    headName: 'Priya Sundaram',
+    contactPhone: '+91 98450 11223',
+    activeWorkersCount: 2,
+    openComplaintsCount: 1
+  },
+  {
+    id: 'dept_drainage',
+    name: 'Drainage',
+    code: 'DRN',
+    headName: 'Vikram Joshi',
+    contactPhone: '+91 98222 11990',
+    activeWorkersCount: 3,
+    openComplaintsCount: 1
+  },
+  {
+    id: 'dept_electricity',
+    name: 'Electricity',
+    code: 'ELE',
+    headName: 'Mahesh Sharma',
+    contactPhone: '+91 98222 33445',
+    activeWorkersCount: 3,
+    openComplaintsCount: 1
+  },
+  {
+    id: 'dept_streetlights',
+    name: 'Street Lights',
+    code: 'STL',
+    headName: 'Govind Narain',
+    contactPhone: '+91 98333 77665',
+    activeWorkersCount: 2,
+    openComplaintsCount: 1
+  },
+  {
+    id: 'dept_waste',
+    name: 'Waste Management',
+    code: 'WST',
+    headName: 'Ramesh Kumar',
+    contactPhone: '+91 94123 55667',
+    activeWorkersCount: 5,
+    openComplaintsCount: 2
+  }
+];
+
+export const INITIAL_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: 'audit_01',
+    action: 'SYSTEM_INITIALIZED',
+    actorId: 'usr_main_admin_001',
+    actorName: 'District Chief Officer Rajeshwar Rao',
+    actorRole: 'main_admin',
+    details: 'CivicEye core village infrastructure system initialized.',
+    timestamp: '2025-04-10T00:00:00Z'
+  },
+  {
+    id: 'audit_02',
+    action: 'ADMIN_PROVISIONED',
+    actorId: 'usr_main_admin_001',
+    actorName: 'District Chief Officer Rajeshwar Rao',
+    actorRole: 'main_admin',
+    targetId: 'usr_admin_001',
+    details: 'Panchayat Officer Anil Verma approved as Ward Administrator.',
+    timestamp: '2025-04-11T10:00:00Z'
   }
 ];
 

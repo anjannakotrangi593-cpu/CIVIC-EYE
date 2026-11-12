@@ -3,20 +3,22 @@ import { ArrowLeft, Check, Camera, X } from 'lucide-react';
 import { Complaint } from '../../types';
 import { storage } from '../../services/storage';
 import { useAuth } from '../../context/AuthContext';
+import { INITIAL_COMPLAINTS } from '../../data/seedData';
 import confetti from 'canvas-confetti';
 
 interface Props {
-  complaint: Complaint;
+  complaint?: Complaint | null;
   onBack: () => void;
   onCompleted: () => void;
 }
 
 export const Screen19_MarkCompletedModal: React.FC<Props> = ({
-  complaint,
+  complaint: propComplaint,
   onBack,
   onCompleted
 }) => {
   const { user } = useAuth();
+  const complaint = propComplaint || INITIAL_COMPLAINTS[0];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [resolutionNotes, setResolutionNotes] = useState(

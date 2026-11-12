@@ -1,21 +1,25 @@
 import React from 'react';
-import { ArrowLeft, Eye, Users, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Eye, Users, ShieldCheck, ChevronRight, Wrench } from 'lucide-react';
 
 interface Props {
   onBack: () => void;
   onSelectCitizen: () => void;
   onSelectAdmin: () => void;
+  onSelectWorker: () => void;
   onLoginClick: () => void;
+  onOpenRegisterModal?: (tab?: 'citizen' | 'worker' | 'admin') => void;
 }
 
 export const Screen2_RoleSelection: React.FC<Props> = ({
   onBack,
   onSelectCitizen,
   onSelectAdmin,
-  onLoginClick
+  onSelectWorker,
+  onLoginClick,
+  onOpenRegisterModal
 }) => {
   return (
-    <div className="flex flex-col h-full justify-between bg-white px-5 py-4">
+    <div className="flex flex-col h-full justify-between bg-white px-5 py-4 overflow-y-auto">
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
@@ -39,37 +43,25 @@ export const Screen2_RoleSelection: React.FC<Props> = ({
           <p className="text-xs text-slate-500 mt-1">Choose how you want to continue</p>
         </div>
 
-        {/* Illustration */}
-        <div className="flex justify-center my-4">
-          <div className="flex items-center justify-center gap-2 p-3 bg-blue-50/70 border border-blue-100 rounded-2xl">
-            <div className="w-10 h-10 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-600 font-bold text-sm">
-              <Users className="w-5 h-5" />
-            </div>
-            <div className="w-10 h-10 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-600 font-bold text-sm">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
         {/* Roles List */}
-        <div className="space-y-3 mt-3">
+        <div className="space-y-2.5 mt-4">
           {/* Citizen Card */}
           <button
             onClick={onSelectCitizen}
-            className="w-full text-left p-4 rounded-2xl border-2 border-blue-500/30 hover:border-blue-500 bg-gradient-to-r from-blue-50/50 to-white hover:bg-blue-50/70 transition-all flex items-center justify-between group shadow-sm active:scale-[0.99]"
+            className="w-full text-left p-3.5 rounded-2xl border-2 border-blue-500/30 hover:border-blue-500 bg-gradient-to-r from-blue-50/50 to-white hover:bg-blue-50/70 transition-all flex items-center justify-between group shadow-xs active:scale-[0.99]"
           >
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                   Citizen
-                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700">
                     Resident
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed pr-2">
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed pr-1">
                   Report issues, track status and help make our village better
                 </p>
               </div>
@@ -80,21 +72,45 @@ export const Screen2_RoleSelection: React.FC<Props> = ({
           {/* Admin / Officer Card */}
           <button
             onClick={onSelectAdmin}
-            className="w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-500 bg-gradient-to-r from-emerald-50/30 to-white hover:bg-emerald-50/60 transition-all flex items-center justify-between group shadow-sm active:scale-[0.99]"
+            className="w-full text-left p-3.5 rounded-2xl border-2 border-slate-200 hover:border-blue-500 bg-gradient-to-r from-slate-50/50 to-white hover:bg-blue-50/40 transition-all flex items-center justify-between group shadow-xs active:scale-[0.99]"
           >
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-md shadow-slate-800/20 group-hover:scale-105 transition-transform">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                   Admin / Officer
-                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    Official
+                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800">
+                    Panchayat
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed pr-2">
-                  Manage complaints, assign workers and monitor village progress
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed pr-1">
+                  Verify complaints, assign workers and monitor village progress
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0" />
+          </button>
+
+          {/* Field Worker Card */}
+          <button
+            onClick={onSelectWorker}
+            className="w-full text-left p-3.5 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-500 bg-gradient-to-r from-emerald-50/40 to-white hover:bg-emerald-50/70 transition-all flex items-center justify-between group shadow-xs active:scale-[0.99]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  Field Worker / Lineman
+                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
+                    Staff
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed pr-1">
+                  Access assigned field tasks, update progress and upload proof
                 </p>
               </div>
             </div>
@@ -104,15 +120,9 @@ export const Screen2_RoleSelection: React.FC<Props> = ({
       </div>
 
       {/* Footer */}
-      <div className="pt-4 text-center">
+      <div className="pt-4 pb-2 text-center">
         <p className="text-xs text-slate-500">
-          Already have an account?{' '}
-          <button
-            onClick={onLoginClick}
-            className="font-bold text-blue-600 hover:underline"
-          >
-            Login
-          </button>
+          Select your role above to create an account or log in
         </p>
       </div>
     </div>

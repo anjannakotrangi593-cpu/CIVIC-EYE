@@ -16,7 +16,8 @@ import {
   ChevronDown,
   Wifi,
   Signal,
-  Battery
+  Battery,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth, AuthProvider } from './context/AuthContext';
 import { storage } from './services/storage';
@@ -42,12 +43,16 @@ import { Screen16_AdminComplaintsList } from './components/screens/Screen16_Admi
 import { Screen17_AdminViewDetails } from './components/screens/Screen17_AdminViewDetails';
 import { Screen18_AssignWorkerModal } from './components/screens/Screen18_AssignWorkerModal';
 import { Screen19_MarkCompletedModal } from './components/screens/Screen19_MarkCompletedModal';
+import { Screen22_WorkerLogin } from './components/screens/Screen22_WorkerLogin';
+import { Screen23_WorkerDashboard } from './components/screens/Screen23_WorkerDashboard';
+import { Screen24_MainAdminDashboard } from './components/screens/Screen24_MainAdminDashboard';
 
 // Modals
 import { EmergencyModal } from './components/modals/EmergencyModal';
 import { AnnouncementsModal } from './components/modals/AnnouncementsModal';
 import { BackendConfigModal } from './components/modals/BackendConfigModal';
 import { WorkersModal } from './components/modals/WorkersModal';
+import { RegistrationModal } from './components/modals/RegistrationModal';
 
 export type ScreenId =
   | '1_splash'
@@ -69,7 +74,10 @@ export type ScreenId =
   | '17_admin_view_details'
   | '18_assign_worker'
   | '19_mark_completed'
-  | '20_comments_view';
+  | '20_comments_view'
+  | '22_worker_login'
+  | '23_worker_dashboard'
+  | '24_main_admin_dashboard';
 
 const SCREEN_TITLES: Record<ScreenId, string> = {
   '1_splash': '1. Splash Screen',
@@ -86,12 +94,15 @@ const SCREEN_TITLES: Record<ScreenId, string> = {
   '12_notifications': '12. Notifications',
   '13_profile': '13. Profile (Citizen)',
   '14_admin_login': '14. Admin Password Login',
-  '15_admin_dashboard': '15. Admin Dashboard',
+  '15_admin_dashboard': '15. Admin Dashboard (Regular)',
   '16_admin_complaints': '16. All Complaints (Admin)',
   '17_admin_view_details': '17. Admin View Details',
   '18_assign_worker': '18. Assign Worker / Update Status',
   '19_mark_completed': '19. Mark as Completed',
-  '20_comments_view': '20. Completed + Comments'
+  '20_comments_view': '20. Completed + Comments',
+  '22_worker_login': '22. Worker Login',
+  '23_worker_dashboard': '23. Worker Dashboard',
+  '24_main_admin_dashboard': '24. Main Admin Dashboard (Apex)'
 };
 
 function MainAppContent() {
@@ -122,6 +133,8 @@ function MainAppContent() {
   const [showAnnouncementsModal, setShowAnnouncementsModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showWorkersModal, setShowWorkersModal] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationTab, setRegistrationTab] = useState<'citizen' | 'worker' | 'admin'>('citizen');
 
   // Subscribe to storage updates
   useEffect(() => {
@@ -130,7 +143,7 @@ function MainAppContent() {
       refreshAllData();
     });
     return unsub;
-  }, []);
+  }, [user?.id]);
 
   const refreshAllData = () => {
     const allC = storage.getComplaints();
@@ -151,9 +164,14 @@ function MainAppContent() {
     setCurrentScreen(screen);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigateTo('1_splash');
+  };
+
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
-  // Determine if Bottom Navigation should be shown
+  // Determine if Citizen Bottom Navigation should be shown
   const isCitizenApp =
     currentScreen === '5_citizen_dashboard' ||
     currentScreen === '9_my_complaints' ||
@@ -161,6 +179,7 @@ function MainAppContent() {
     currentScreen === '12_notifications' ||
     currentScreen === '13_profile';
 
+  // Determine if Admin Bottom Navigation should be shown
   const isAdminApp =
     currentScreen === '15_admin_dashboard' ||
     currentScreen === '16_admin_complaints';
@@ -185,13 +204,19 @@ function MainAppContent() {
           {showScreenSelector && (
             <div className="absolute left-0 mt-2 w-72 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 max-h-80 overflow-y-auto divide-y divide-slate-100">
               <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Jump to any of 20 screens:
+                Jump to any of 21 screens:
               </div>
               {Object.entries(SCREEN_TITLES).map(([id, title]) => (
                 <button
                   key={id}
                   onClick={() => {
-                    if (id === '10_complaint_details' || id === '17_admin_view_details' || id === '18_assign_worker' || id === '19_mark_completed' || id === '20_comments_view') {
+                    if (
+                      id === '10_complaint_details' ||
+                      id === '17_admin_view_details' ||
+                      id === '18_assign_worker' ||
+                      id === '19_mark_completed' ||
+                      id === '20_comments_view'
+                    ) {
                       setSelectedComplaint(complaints[0] || null);
                     }
                     navigateTo(id as ScreenId);
@@ -211,8 +236,19 @@ function MainAppContent() {
           )}
         </div>
 
-        {/* Viewport Frame Toggle */}
+        {/* Viewport Frame Toggle & Registration Quick Trigger */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setRegistrationTab('citizen');
+              setShowRegistrationModal(true);
+            }}
+            className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 rounded-xl font-bold text-[11px] transition-colors text-white"
+            title="Register Account (Citizen / Worker / Admin)"
+          >
+            + Register
+          </button>
+
           <button
             onClick={() => setShowConfigModal(true)}
             className="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-[11px] transition-colors"
@@ -239,7 +275,7 @@ function MainAppContent() {
             : 'max-w-2xl min-h-[85vh] rounded-2xl'
         }`}
       >
-        {/* Authentic Smartphone Status Bar (Matching Screen 1-20: Time 9:41, wifi, battery) */}
+        {/* Authentic Smartphone Status Bar */}
         <div className="w-full bg-white px-7 pt-3 pb-1 flex items-center justify-between select-none z-30 shrink-0">
           <span className="text-xs font-bold text-slate-900 font-mono tracking-tight">9:41</span>
           <div className="flex items-center gap-1.5 text-slate-900">
@@ -265,7 +301,12 @@ function MainAppContent() {
               onBack={() => navigateTo('1_splash')}
               onSelectCitizen={() => navigateTo('3_citizen_login')}
               onSelectAdmin={() => navigateTo('14_admin_login')}
+              onSelectWorker={() => navigateTo('22_worker_login')}
               onLoginClick={() => navigateTo('3_citizen_login')}
+              onOpenRegisterModal={(tab) => {
+                setRegistrationTab(tab || 'citizen');
+                setShowRegistrationModal(true);
+              }}
             />
           )}
 
@@ -409,14 +450,22 @@ function MainAppContent() {
               onOpenEmergency={() => setShowEmergencyModal(true)}
               onOpenConfig={() => setShowConfigModal(true)}
               onSwitchToAdmin={() => navigateTo('14_admin_login')}
+              onSwitchToWorker={() => navigateTo('22_worker_login')}
+              onLogout={handleLogout}
             />
           )}
 
-          {/* Screen 14: Admin Login */}
+          {/* Screen 14: Admin Authentication */}
           {currentScreen === '14_admin_login' && (
             <Screen14_AdminLogin
-              onBack={() => navigateTo('1_splash')}
-              onLoginSuccess={() => navigateTo('15_admin_dashboard')}
+              onBack={() => navigateTo('2_role_selection')}
+              onLoginSuccess={(loggedRole) => {
+                if (loggedRole === 'main_admin') {
+                  navigateTo('24_main_admin_dashboard');
+                } else {
+                  navigateTo('15_admin_dashboard');
+                }
+              }}
             />
           )}
 
@@ -438,15 +487,14 @@ function MainAppContent() {
                     complaints.filter((c) => c.status === 'submitted' || c.status === 'verified').length
                   }\n• In Progress: ${
                     complaints.filter((c) => c.status === 'in_progress').length
+                  }\n• In Review: ${
+                    complaints.filter((c) => c.status === 'submitted_for_review').length
                   }\n• Resolved: ${
                     complaints.filter((c) => c.status === 'resolved').length
                   }\n• Average Resolution Time: 28 Hours`
                 )
               }
-              onLogout={() => {
-                logout();
-                navigateTo('1_splash');
-              }}
+              onLogout={handleLogout}
             />
           )}
 
@@ -496,6 +544,40 @@ function MainAppContent() {
               }}
             />
           )}
+
+          {/* Screen 22: Worker Authentication */}
+          {currentScreen === '22_worker_login' && (
+            <Screen22_WorkerLogin
+              onBack={() => navigateTo('2_role_selection')}
+              onLoginSuccess={() => navigateTo('23_worker_dashboard')}
+            />
+          )}
+
+          {/* Screen 23: Worker Dedicated Dashboard */}
+          {currentScreen === '23_worker_dashboard' && (
+            <Screen23_WorkerDashboard
+              complaints={complaints}
+              onSelectComplaint={(c) => {
+                setSelectedComplaint(c);
+                navigateTo('10_complaint_details');
+              }}
+              onLogout={handleLogout}
+              onRefresh={refreshAllData}
+            />
+          )}
+
+          {/* Screen 24: Main Admin Dashboard */}
+          {currentScreen === '24_main_admin_dashboard' && (
+            <Screen24_MainAdminDashboard
+              complaints={complaints}
+              onSelectComplaint={(c) => {
+                setSelectedComplaint(c);
+                navigateTo('17_admin_view_details');
+              }}
+              onLogout={handleLogout}
+              onRefresh={refreshAllData}
+            />
+          )}
         </main>
 
         {/* Citizen Bottom Navigation Bar (Screens 5, 9, 11, 12, 13) */}
@@ -526,7 +608,7 @@ function MainAppContent() {
             {/* Floating Action Report (+) in Center */}
             <button
               onClick={() => navigateTo('6_select_problem_type')}
-              className="w-12 h-12 -mt-6 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 transition-all border-4 border-white"
+              className="w-12 h-12 -mt-6 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-[0.96] text-white flex items-center justify-center shadow-lg shadow-blue-600/30 transition-all border-4 border-white"
               title="Report an Issue"
             >
               <Plus className="w-6 h-6 stroke-[3]" />
@@ -602,6 +684,17 @@ function MainAppContent() {
       </div>
 
       {/* Global Modals */}
+      {showRegistrationModal && (
+        <RegistrationModal
+          initialTab={registrationTab}
+          onClose={() => setShowRegistrationModal(false)}
+          onCitizenRegistered={() => {
+            setShowRegistrationModal(false);
+            navigateTo('5_citizen_dashboard');
+          }}
+        />
+      )}
+
       {showEmergencyModal && (
         <EmergencyModal
           contacts={emergencyContacts}

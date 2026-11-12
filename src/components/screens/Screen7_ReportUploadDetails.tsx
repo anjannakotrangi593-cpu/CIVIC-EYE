@@ -2,13 +2,16 @@ import React, { useState, useRef } from 'react';
 import {
   ArrowLeft,
   Camera,
+  Image as ImageIcon,
   MapPin,
   RefreshCw,
   X,
   CheckCircle,
   AlertTriangle,
   Upload,
-  Info
+  Info,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { ComplaintCategory } from '../../types';
 import { CATEGORIES } from '../../data/categories';
@@ -22,6 +25,13 @@ interface Props {
   onSubmitSuccess: (complaintId: string) => void;
 }
 
+interface PhotoItem {
+  id: string;
+  url: string;
+  name: string;
+  size: number;
+}
+
 export const Screen7_ReportUploadDetails: React.FC<Props> = ({
   category,
   subcategory,
@@ -29,11 +39,16 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
   onSubmitSuccess
 }) => {
   const { user } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Photos state (multiple photos up to 4)
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [showLiveCameraModal, setShowLiveCameraModal] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   // Form states
-  const [photoUrl, setPhotoUrl] = useState<string>('');
-  const [photoName, setPhotoName] = useState<string>('');
   const [locationText, setLocationText] = useState('MG Road, Near Bus Stand, Rampur');
   const [ward, setWard] = useState(user?.ward || 'Ward 4');
   const [latitude, setLatitude] = useState(26.8467);
@@ -50,32 +65,117 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
 
   const catInfo = CATEGORIES[category];
 
-  // Handle Photo File Upload
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('Please select a valid image file (JPEG, PNG, WEBP).');
-      return;
-    }
-
-    if (file.size > 8 * 1024 * 1024) {
-      setErrorMsg('Image size exceeds 8MB. Please choose a smaller photo.');
-      return;
-    }
-
+  // Process selected file(s)
+  const processFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
     setErrorMsg('');
-    setPhotoName(file.name);
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+
+    if (photos.length + files.length > 4) {
+      setErrorMsg('You can upload a maximum of 4 evidence photos.');
+      return;
+    }
+
+    Array.from(files).forEach((file) => {
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
+        setErrorMsg(`"${file.name}" is not a supported format. Please upload JPEG, PNG, or WEBP.`);
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        setErrorMsg(`"${file.name}" exceeds 5MB size limit. Please choose a smaller photo.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          setPhotos((prev) => [
+            ...prev,
+            {
+              id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              url: reader.result as string,
+              name: file.name,
+              size: file.size
+            }
+          ]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  // Preset realistic sample photo for quick testing if camera not available
+  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processFiles(e.target.files);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleCameraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processFiles(e.target.files);
+    if (e.target) e.target.value = '';
+  };
+
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // Live Camera Stream modal for desktop/webcam or direct mobile capture
+  const startLiveCamera = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        setCameraStream(stream);
+        setShowLiveCameraModal(true);
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play();
+          }
+        }, 200);
+      } else {
+        cameraInputRef.current?.click();
+      }
+    } catch {
+      // Fallback to native file input with capture="environment"
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const captureLivePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setPhotos((prev) => [
+        ...prev,
+        {
+          id: `cam_${Date.now()}`,
+          url: dataUrl,
+          name: `camera_capture_${photos.length + 1}.jpg`,
+          size: Math.round((dataUrl.length * 3) / 4)
+        }
+      ]);
+    }
+    closeLiveCamera();
+  };
+
+  const closeLiveCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+    setShowLiveCameraModal(false);
+  };
+
+  // Sample photo fallback
   const handleUseSamplePhoto = () => {
     let sample = 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80';
     if (category === 'road') {
@@ -89,8 +189,15 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
     } else if (category === 'electricity') {
       sample = 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=800&q=80';
     }
-    setPhotoUrl(sample);
-    setPhotoName('civic_evidence.jpg');
+
+    setPhotos([
+      {
+        id: `sample_${Date.now()}`,
+        url: sample,
+        name: `${category}_evidence.jpg`,
+        size: 1024 * 250
+      }
+    ]);
   };
 
   // Fetch real device GPS
@@ -143,9 +250,10 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
     setIsSubmitting(true);
 
     try {
-      const finalImageUrls = photoUrl
-        ? [photoUrl]
-        : ['https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'];
+      const finalImageUrls =
+        photos.length > 0
+          ? photos.map((p) => p.url)
+          : ['https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'];
 
       const newComplaint = storage.addComplaint({
         citizenId: user?.id || 'usr_guest',
@@ -169,7 +277,7 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
 
       setShowReviewModal(false);
       onSubmitSuccess(newComplaint.id);
-    } catch (err) {
+    } catch {
       setErrorMsg('Failed to submit complaint. Please try again.');
       setIsSubmitting(false);
     }
@@ -257,11 +365,13 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
             </div>
           )}
 
-          {/* 1. Upload Photo */}
+          {/* 1. Upload Photo - Camera & Gallery */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-800">Upload Photo</label>
-              {!photoUrl && (
+              <label className="text-xs font-bold text-slate-800">
+                Evidence Photos ({photos.length}/4)
+              </label>
+              {photos.length === 0 && (
                 <button
                   type="button"
                   onClick={handleUseSamplePhoto}
@@ -272,50 +382,87 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
               )}
             </div>
 
+            {/* Hidden Inputs for Camera and Gallery */}
             <input
               type="file"
-              ref={fileInputRef}
-              accept="image/*"
+              ref={galleryInputRef}
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={handleGalleryChange}
+              className="hidden"
+            />
+            <input
+              type="file"
+              ref={cameraInputRef}
+              accept="image/jpeg,image/png,image/webp"
               capture="environment"
-              onChange={handleFileChange}
+              onChange={handleCameraChange}
               className="hidden"
             />
 
-            {!photoUrl ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-36 border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50/70 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors p-4 text-center group"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-100/70 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                  <Camera className="w-6 h-6 stroke-[1.75]" />
-                </div>
-                <p className="text-xs font-bold text-slate-700">Tap to capture or upload photo</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Supports JPG, PNG up to 8MB</p>
+            {/* Upload Action Buttons */}
+            {photos.length < 4 && (
+              <div className="grid grid-cols-2 gap-2 mb-2.5">
+                <button
+                  type="button"
+                  onClick={startLiveCamera}
+                  className="py-2.5 px-3 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 text-blue-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Take Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                >
+                  <ImageIcon className="w-4 h-4 text-slate-600" />
+                  <span>From Gallery</span>
+                </button>
               </div>
-            ) : (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-xs">
-                <img
-                  src={photoUrl}
-                  alt="Complaint Preview"
-                  className="w-full h-40 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90" />
-                <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-white">
-                  <span className="text-xs font-medium truncate max-w-[70%]">
-                    {photoName || 'Captured photo'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhotoUrl('');
-                      setPhotoName('');
-                    }}
-                    className="p-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
-                    title="Remove photo"
+            )}
+
+            {/* Photo Previews Grid */}
+            {photos.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {photos.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs"
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    <img
+                      src={item.url}
+                      alt={`Evidence ${idx + 1}`}
+                      className="w-full h-28 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+                    <span className="absolute bottom-1.5 left-2 text-[10px] font-bold text-white">
+                      Photo {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(item.id)}
+                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-rose-600 text-white hover:bg-rose-700 shadow-sm transition-transform active:scale-90"
+                      title="Remove photo"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {photos.length === 0 && (
+              <div
+                onClick={() => galleryInputRef.current?.click()}
+                className="w-full h-28 border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50/70 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors p-4 text-center group"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-100/70 text-blue-600 flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
+                  <Camera className="w-5 h-5 stroke-[1.75]" />
                 </div>
+                <p className="text-xs font-bold text-slate-700">Tap to capture or choose from gallery</p>
+                <p className="text-[10px] text-slate-400">JPEG, PNG, WEBP (Max 5MB each)</p>
               </div>
             )}
           </div>
@@ -382,13 +529,39 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
               type="submit"
               className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
             >
-              <span>Submit</span>
+              <span>Submit Complaint</span>
             </button>
           </div>
         </form>
       </div>
 
-      {/* Review Modal Dialog before final submit (prevents duplicate submission) */}
+      {/* Live Camera Modal */}
+      {showLiveCameraModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-between p-4">
+          <div className="w-full flex justify-between items-center text-white pt-2">
+            <span className="font-bold text-sm">Live Camera Capture</span>
+            <button onClick={closeLiveCamera} className="p-1 rounded-full bg-white/20 text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="w-full max-w-sm aspect-3/4 rounded-2xl overflow-hidden bg-black relative flex items-center justify-center">
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          </div>
+
+          <div className="w-full flex justify-center pb-6">
+            <button
+              type="button"
+              onClick={captureLivePhoto}
+              className="w-16 h-16 rounded-full bg-white border-4 border-blue-600 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+            >
+              <Camera className="w-7 h-7 text-blue-600" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal Dialog before final submit */}
       {showReviewModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
@@ -407,6 +580,10 @@ export const Screen7_ReportUploadDetails: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-slate-500">Category:</span>
                 <span className="font-bold text-slate-800">{catInfo.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Photos Attached:</span>
+                <span className="font-bold text-blue-600">{photos.length || 1} photo(s)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Location:</span>
